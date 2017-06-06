@@ -1,0 +1,286 @@
+int sensorPin1 = A0;
+int sensorPin2 = A1;
+int sensorPin3 = A2;
+int sensorPin4 = A3;
+int sensorPin5 = A4;
+int sensorPin6 = A5;
+int LEDPin1 = 8;
+int LEDPin2 = 9;
+int LEDPin3 = 10;
+int LEDPin4 = 11;
+int LEDPin5 = 12;
+int LEDPin6 = 13;
+int lock = 7;
+int buttonPin = 2;
+int buttonState = 0;
+int num_resistors = 6;
+int thresholdChange = 200;
+int maxChangeIndex = 0;
+int inputIndex1 = 10;
+int inputIndex2 = 15;
+int calibration[6] = {0, 0, 0, 0, 0, 0};
+int currentValue[6] = {0, 0, 0, 0, 0, 0};
+//this is the input combination that the user attempt as password
+int input[6] = {0, 0, 0, 0, 0, 0};
+//this is the default password
+int password[6] = {0, 1, 2, 3, 4, 5};
+int passwordIndex = 0;
+int background[6] = {0,0,0,0,0,0};
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(sensorPin1, INPUT);
+  pinMode(sensorPin2, INPUT);
+  pinMode(sensorPin3, INPUT);
+  pinMode(sensorPin4, INPUT);
+  pinMode(sensorPin5, INPUT);
+  pinMode(sensorPin6, INPUT);
+  pinMode(LEDPin1, OUTPUT);
+  pinMode(LEDPin2, OUTPUT);
+  pinMode(LEDPin3, OUTPUT);
+  pinMode(LEDPin4, OUTPUT);
+  pinMode(LEDPin5, OUTPUT);
+  pinMode(LEDPin6, OUTPUT);
+  pinMode(lock, OUTPUT);
+  Serial.begin(9600);
+  calibrating();
+}
+
+void loop() {
+  int sensorValue1 = analogRead(sensorPin1);
+  int sensorValue2 = analogRead(sensorPin2);
+  int sensorValue3 = analogRead(sensorPin3);
+  int sensorValue4 = analogRead(sensorPin4);
+  int sensorValue5 = analogRead(sensorPin5);
+  int sensorValue6 = analogRead(sensorPin6);
+  settingCurrentValue();
+  //this newValue is the the change in value of photo resistors (currentValue - calibration)
+  int newValues[num_resistors];
+  for(int x = 0; x < num_resistors; x++)
+  {
+    newValues[x] = currentValue[x] - calibration[x];
+  }
+  
+  //this return the max
+  int maxChangeValue = newValues[0];
+  for( int x = 0; x < num_resistors; x++)
+  {
+    if (newValues[x] >= maxChangeValue)
+    {
+      maxChangeValue = newValues[x];
+      maxChangeIndex = x;
+    }
+  }
+  //We don't want the system to recognize a small change of value of photo resistors to be as input.
+  //this loop allows us to return the index of the biggest change amount resistors if the change is bigger than 200
+  inputIndex1 = maxChangeIndex;
+  for(int x = 0; x < num_resistors; x++)
+  {
+    if(newValues[x] >= thresholdChange)
+    {
+      //check if the input index is the same as previous input index
+      if(inputIndex1 != inputIndex2)
+        {
+          Serial.println(inputIndex1);
+          digitalWrite(passwordIndex + 8, HIGH);
+          input[passwordIndex] = inputIndex1;
+          inputIndex2 = x;
+
+          if(passwordIndex < num_resistors -1)
+          {
+            passwordIndex++;
+          }
+          else
+          {
+            passwordIndex = 0; //reset passwordIndex
+
+            Serial.print(input[0]);
+            Serial.print(input[1]);
+            Serial.print(input[2]);
+            Serial.print(input[3]);
+            Serial.print(input[4]);
+            Serial.print(input[5]);
+            Serial.print("\n");
+            digitalWrite(LEDPin1, LOW);
+            digitalWrite(LEDPin2, LOW);
+            digitalWrite(LEDPin3, LOW);
+            digitalWrite(LEDPin4, LOW);
+            digitalWrite(LEDPin5, LOW);
+            digitalWrite(LEDPin6, LOW);
+            if (input[0] == password[0] && input[1] == password[1] && input[2] == password[2] && input[3] == password[3] && input[4] == password[4] && input[5] == password[5])
+          {
+            unlockLightShow();
+            digitalWrite(lock, HIGH);
+            delay(3000);
+            Serial.print(buttonState);
+            buttonState = digitalRead(buttonPin);
+            digitalWrite(lock, LOW);
+            Serial.print(buttonState);
+            delay(1000);
+            if(digitalRead(buttonPin) == 1)
+            {
+              digitalWrite(LEDPin6, HIGH);
+              //changingPassword();
+            }
+            buttonState = 0;
+          }
+          //reseting the input to 0, 0, 0, 0, 0, 0
+          for( int y = 0; y < num_resistors; y++)
+          {
+            input[y] = 0;
+          }
+        }
+        inputIndex1 = 10;
+        inputIndex2 = 15;
+        delay(1000);
+        digitalWrite(LEDPin1, LOW);
+        digitalWrite(LEDPin2, LOW);
+        digitalWrite(LEDPin3, LOW);
+        digitalWrite(LEDPin4, LOW);
+        digitalWrite(LEDPin5, LOW);
+        digitalWrite(LEDPin6, LOW);
+    }
+  }
+}
+
+}
+
+void calibrating() {
+  calibration[0] = analogRead(sensorPin1);
+  calibration[1] = analogRead(sensorPin2);
+  calibration[2] = analogRead(sensorPin3);
+  calibration[3] = analogRead(sensorPin4);
+  calibration[4] = analogRead(sensorPin5);
+  calibration[5] = analogRead(sensorPin6);
+}
+
+void settingCurrentValue() {
+  currentValue[0] = analogRead(sensorPin1);
+  currentValue[1] = analogRead(sensorPin2);
+  currentValue[2] = analogRead(sensorPin3);
+  currentValue[3] = analogRead(sensorPin4);
+  currentValue[4] = analogRead(sensorPin5);
+  currentValue[5] = analogRead(sensorPin6);
+}
+void unlockLightShow() {
+  Serial.println("pass!");
+            digitalWrite(LEDPin1, HIGH);
+            digitalWrite(LEDPin2, HIGH);
+            digitalWrite(LEDPin3, HIGH);
+            digitalWrite(LEDPin4, HIGH);
+            digitalWrite(LEDPin5, HIGH);
+            digitalWrite(LEDPin6, HIGH);
+            delay(500);
+            digitalWrite(LEDPin1, LOW);
+            digitalWrite(LEDPin2, LOW);
+            digitalWrite(LEDPin3, LOW);
+            digitalWrite(LEDPin4, LOW);
+            digitalWrite(LEDPin5, LOW);
+            digitalWrite(LEDPin6, LOW);
+            delay(500);
+            digitalWrite(LEDPin1, HIGH);
+            digitalWrite(LEDPin2, HIGH);
+            digitalWrite(LEDPin3, HIGH);
+            digitalWrite(LEDPin4, HIGH);
+            digitalWrite(LEDPin5, HIGH);
+            digitalWrite(LEDPin6, HIGH);
+            delay(500);
+            digitalWrite(LEDPin1, LOW);
+            digitalWrite(LEDPin2, LOW);
+            digitalWrite(LEDPin3, LOW);
+            digitalWrite(LEDPin4, LOW);
+            digitalWrite(LEDPin5, LOW);
+            digitalWrite(LEDPin6, LOW);
+            delay(500);
+}
+
+void transitionLightShow() {
+   for ( int x = 0; x < 3; x++)
+              {
+                digitalWrite(LEDPin1, HIGH);
+                delay(500);
+                digitalWrite(LEDPin2, HIGH);
+                digitalWrite(LEDPin1, LOW);
+                delay(500);
+                digitalWrite(LEDPin3, HIGH);
+                digitalWrite(LEDPin2, LOW);
+                delay(500);
+                digitalWrite(LEDPin4, HIGH);
+                digitalWrite(LEDPin3, LOW);
+                delay(500);
+                digitalWrite(LEDPin5, HIGH);
+                digitalWrite(LEDPin4, LOW);
+                delay(500);
+                digitalWrite(LEDPin6, HIGH);
+                digitalWrite(LEDPin5, LOW);
+                digitalWrite(LEDPin6, LOW);
+              }
+}
+
+void changingPassword() {
+   Serial.println("PASSWORD IS CHANGING!");
+   password[0] = 9;
+   password[1] = 9;
+   password[2] = 9;
+   password[3] = 9;
+   password[4] = 9;
+   password[5] = 9;
+   delay(1000);
+   transitionLightShow();
+   boolean doneResetting = false;
+   while(!doneResetting)
+   {
+
+      settingCurrentValue();
+      int newValues[num_resistors];
+      for(int x = 0; x < num_resistors; x++)
+      {
+        newValues[x] = currentValue[x] - calibration[x];
+      }
+      int maxChangeValue = newValues[0];
+      for( int x = 0; x < num_resistors; x++)
+       {
+      if (newValues[x] >= maxChangeValue)
+      {
+      maxChangeValue = newValues[x];
+      maxChangeIndex = x;
+       }
+     } 
+  //We don't want the system to recognize a small change of value of photo resistors to be as input.
+  //this loop allows us to return the index of the biggest change amount resistors if the change is bigger than 200
+  inputIndex1 = maxChangeIndex;
+  for(int x = 0; x < num_resistors; x++)
+  {
+    if(newValues[x] >= thresholdChange)
+    {
+      //check if the input index is the same as previous input index
+      if(inputIndex1 != inputIndex2)
+        {
+          Serial.println(inputIndex1);
+          digitalWrite(passwordIndex + 8, HIGH);
+          delay(500);
+          digitalWrite(passwordIndex + 8, LOW);
+          delay(500);
+          digitalWrite(passwordIndex + 8, HIGH);
+          password[passwordIndex] = inputIndex1;
+          inputIndex2 = x;
+
+          if(passwordIndex < num_resistors -1)
+          {
+            passwordIndex++;
+          }
+        }
+    }
+  }
+  if(password[0] != 9 && password[1] != 9 && password[2] != 9 && password[3] != 9 && password[4] != 9 && password[5] != 9)
+  {
+    doneResetting = true;
+    digitalWrite(LEDPin1, LOW);
+    digitalWrite(LEDPin2, LOW);
+    digitalWrite(LEDPin3, LOW);
+    digitalWrite(LEDPin4, LOW);
+    digitalWrite(LEDPin5, LOW);
+    digitalWrite(LEDPin6, LOW);
+  }
+   
+}
+}
